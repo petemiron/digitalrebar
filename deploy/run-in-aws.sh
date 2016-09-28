@@ -50,10 +50,28 @@ else
 
     SG_ID=$(aws ec2 describe-security-groups --group-names "digital rebar" | jq -r .SecurityGroups[0].GroupId)
     if [[ ! $SG_ID ]] ; then
-        echo "Please create a security group called: 'digital rebar'"
-        echo "The group should allow ICMP ping, TCP ports 22, 443, 3000, 8888, 8300, and 8301"
+	echo "Creating a security group called: 'digital rebar'"
+	aws ec2 create-security-group --group-name 'digital rebar' --description "My security group"
+    	SG_ID=$(aws ec2 describe-security-groups --group-names "digital rebar" | jq -r .SecurityGroups[0].GroupId)
+	echo "Adding Security Group Rules to 'digital rebar'"
+	# declare an array variable
+	declare -a inports=("22" "443" "3000" "8888" "8300" "8301" "4646")
+
+	for i in "${inports[@]}"
+	do
+		# authorize the simple ingress groups
+		echo "Adding ingress on port $i"
+		aws ec2 authorize-security-group-ingress --group-name 'digital rebar' --protocol tcp --port $i --cidr 0.0.0.0/0 
+	done
+
+	# icmp is a bit special
+	echo "Adding ingress on ICMP"
+	aws ec2 authorize-security-group-ingress --group-name 'digital rebar' --protocol icmp --port -1 --cidr 0.0.0.0/0
+	
+        # echo "Please create a security group called: 'digital rebar'"
+        # echo "The group should allow ICMP ping, TCP ports 22, 443, 3000, 8888, 8300, and 8301"
         echo "If provisioner is turned on and to be used, add 4646 TCP port."
-        exit -1
+        # exit -1
     fi
 
     DISK_INFO='[{ "DeviceName": "/dev/sda1", "Ebs": { "DeleteOnTermination": true } }]'
